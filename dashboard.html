@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>予約管理</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#000000;
+  --surface:#1e1e1e;
+  --surface2:#2c2c2c;
+  --border:#4a4a4a;
+  --accent:#00e5a0;--pink:#00e5a0;--blue2:#4da6ff;
+  --text:#ffffff;--text2:#c8c8c8;--text3:#8a8a8a;
+  --green:#00e676;--red:#ff5252;--blue:#4da6ff;
+  --hh:58px;
+}
+
+html,body{
+  font-family:'Noto Sans JP',sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;
+  font-size:16px;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ════════════════════════
+   HEADER
+════════════════════════ */
+.header{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:var(--hh);
+  background:linear-gradient(135deg,var(--surface),var(--surface2));
+  border-bottom:2px solid var(--pink);
+  display:flex;align-items:center;padding:0 14px;gap:10px;
+  box-shadow:0 3px 14px rgba(0,0,0,.45);
+}
+.hd-title{
+  font-size:17px;font-weight:800;
+  background:linear-gradient(90deg,var(--pink),var(--blue));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  display:flex;align-items:center;gap:8px;
+  flex:1;min-width:0;white-space:nowrap;
+}
+.live-dot{
+  width:8px;height:8px;flex-shrink:0;
+  background:var(--green);border-radius:50%;
+  box-shadow:0 0 8px var(--green);
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.hd-nav{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.hd-date{
+  font-family:'DM Mono',monospace;font-size:13px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;padding:9px 13px;font-weight:700;
+  border-color:var(--blue);
+  position:relative;cursor:pointer;white-space:nowrap;min-width:158px;text-align:center;
+}
+.hd-date input[type=date]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.hd-btn{
+  background:var(--surface2);border:1px solid var(--border);color:var(--text2);
+  width:40px;height:40px;border-radius:10px;cursor:pointer;
+  font-size:20px;display:flex;align-items:center;justify-content:center;
+  transition:.12s;flex-shrink:0;
+}
+.hd-btn:hover,.hd-btn:active{background:var(--border);color:var(--text)}
+.hd-today{
+  background:linear-gradient(135deg,var(--pink),var(--blue));border:none;color:#fff;
+  font-size:14px;font-weight:700;padding:0 14px;height:40px;
+  box-shadow:0 3px 10px rgba(255,61,139,.35);
+  border-radius:8px;cursor:pointer;white-space:nowrap;
+  font-family:'Noto Sans JP',sans-serif;
+}
+.hd-reload{font-size:20px}
+
+/* ══════ 新規予約（直接来店）ボタン ══════ */
+.hd-walkin{
+  background:linear-gradient(135deg,var(--blue),#2563eb);border:none;color:#fff;
+  padding:0 15px;height:40px;border-radius:10px;
+  font-size:14px;font-weight:700;cursor:pointer;
+  box-shadow:0 3px 10px rgba(59,130,246,.35);
+  font-family:inherit;white-space:nowrap;
+  transition:.15s;
+}
+.hd-walkin:hover{filter:brightness(1.12)}
+.hd-walkin:active{transform:scale(.97)}
+@media(max-width:600px){
+  .hd-walkin{font-size:13px;padding:8px 12px}
+}
+
+/* ══════ 直接来店カード ══════ */
+.bcard.walkin{
+  border-color:var(--blue);
+  background:color-mix(in srgb,var(--blue) 6%,var(--surface2));
+}
+.bc-walkin-banner{
+  background:var(--blue);color:#fff;
+  font-size:11px;font-weight:700;letter-spacing:.1em;
+  text-align:center;padding:4px;
+}
+.b-walkin{background:color-mix(in srgb,var(--blue) 18%,transparent);color:var(--blue)}
+.bcard.walkin .bc-icons{ top:32px; }
+.bcard.walkin.arrived{
+  background:color-mix(in srgb,var(--green) 14%,var(--surface2));
+  border-color:var(--green);
+  box-shadow:0 0 12px color-mix(in srgb,var(--green) 18%,transparent);
+}
+
+/* ══════ 新規予約フォーム ══════ */
+.wf-input{
+  width:100%;padding:11px 14px;border-radius:10px;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);font-size:14px;font-family:inherit;
+  box-sizing:border-box;
+}
+.wf-input:focus{outline:none;border-color:var(--accent)}
+.wf-input.error{border-color:var(--red)}
+.mf-select.error{border-color:var(--red)}
+.wf-req{color:var(--red);font-size:10px;margin-left:3px}
+.wf-row2{display:flex;gap:10px}
+.wf-row2 > div{flex:1}
+.wf-submit{
+  width:100%;padding:13px;border-radius:10px;border:none;
+  background:var(--accent);color:#fff;
+  font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;
+  transition:.15s;margin-top:4px;
+}
+.wf-submit:hover{filter:brightness(1.1)}
+.wf-submit:active{transform:scale(.99)}
+.wf-submit:disabled{opacity:.5;cursor:default}
+.wf-error{
+  color:var(--red);font-size:12px;min-height:16px;
+  margin-bottom:8px;text-align:center;
+}
+.mf-edit-btn{
+  width:100%;padding:11px;border-radius:10px;
+  background:transparent;border:1.5px solid var(--blue);color:var(--blue);
+  font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+  transition:.15s;
+}
+.mf-edit-btn:hover{background:color-mix(in srgb,var(--blue) 12%,transparent)}
+.mf-delete-btn{
+  width:100%;padding:11px;border-radius:10px;margin-top:8px;
+  background:transparent;border:1.5px solid var(--border);color:var(--text3);
+  font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+  transition:.15s;
+}
+.mf-delete-btn:hover{border-color:var(--red);color:var(--red);background:color-mix(in srgb,var(--red) 8%,transparent)}
+.mf-delete-confirm{
+  margin-top:8px;padding:14px;border-radius:10px;
+  background:color-mix(in srgb,var(--red) 10%,var(--surface2));
+  border:1.5px solid var(--red);
+}
+.mf-delete-confirm-text{
+  font-size:13px;color:var(--text);text-align:center;
+  line-height:1.6;margin-bottom:12px;font-weight:700;
+}
+.mf-delete-confirm-btns{display:flex;gap:8px}
+.mf-delete-cancel{
+  flex:1;padding:10px;border-radius:9px;
+  background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.mf-delete-cancel:hover{background:var(--border)}
+.mf-delete-exec{
+  flex:1;padding:10px;border-radius:9px;
+  background:var(--red);border:none;color:#fff;
+  font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+  transition:.15s;
+}
+.mf-delete-exec:hover{filter:brightness(1.1)}
+.mf-delete-exec:disabled{opacity:.5;cursor:default}
+
+@media(max-width:500px){
+  .hd-date{min-width:0;padding:6px 8px;font-size:12px}
+  .hd-title{font-size:14px}
+}
+
+/* ════════════════════════
+   PAGE
+════════════════════════ */
+.page{
+  margin-top:var(--hh);
+  padding:16px 20px;
+  max-width:1000px;
+  margin-left:auto;margin-right:auto;
+}
+@media(max-width:600px){
+  .page{padding:10px 0}
+}
+
+/* ════════════════════════
+   LOADING
+════════════════════════ */
+.loading{text-align:center;padding:80px 0;color:var(--text3);font-size:14px}
+.spinner{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ════════════════════════
+   内側ラッパー
+════════════════════════ */
+.inner{padding:0}
+@media(max-width:600px){
+  .inner{padding:0 10px}
+}
+
+/* ════════════════════════
+   SHOP TABS（京都 / 大阪 / 相撲ショー）
+════════════════════════ */
+.shop-tabs{display:flex;gap:6px;margin-bottom:12px}
+.shop-tab{
+  flex:1;text-align:center;padding:11px 6px;border-radius:12px;
+  background:var(--surface);border:1.5px solid var(--border);color:var(--text2);
+  font-size:14px;font-weight:700;cursor:pointer;user-select:none;transition:.15s;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  white-space:nowrap;
+}
+.shop-tab:hover{border-color:var(--blue)}
+.shop-tab:active{transform:scale(.97)}
+.shop-tab.active{
+  background:linear-gradient(135deg,var(--pink),var(--blue));
+  border-color:var(--pink);color:#fff;
+  box-shadow:0 3px 12px rgba(0,229,160,.25);
+}
+.st-n{
+  font-family:'DM Mono',monospace;font-size:11px;
+  min-width:18px;padding:1px 5px;border-radius:9px;
+  background:rgba(255,255,255,.20);
+}
+.shop-tab:not(.active) .st-n{background:var(--surface2);color:var(--text3)}
+@media(max-width:600px){
+  .shop-tab{font-size:15px;padding:13px 4px;gap:5px}
+}
+
+/* ════════════════════════
+   WEEK NAV
+════════════════════════ */
+.week-nav{display:flex;gap:5px;margin-bottom:14px}
+@media(max-width:600px){
+  .week-nav{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+.wday{
+  flex:1;min-width:56px;
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:12px;padding:10px 4px;text-align:center;cursor:pointer;
+  transition:.12s;user-select:none;
+}
+.wday:hover,.wday:active{border-color:var(--accent)}
+.wday.active{background:linear-gradient(135deg,var(--pink),var(--blue));border-color:var(--pink);
+  box-shadow:0 3px 12px rgba(255,61,139,.3)}
+.wday.active .wd-n,.wday.active .wd-d{color:#fff}
+.wd-n{font-size:11px;color:var(--text3);margin-bottom:3px;font-weight:600}
+.wd-d{font-family:'DM Mono',monospace;font-size:19px;font-weight:700;line-height:1.1}
+.wd-dots{display:flex;justify-content:center;gap:2px;margin-top:4px;min-height:6px}
+.wd-dot{width:5px;height:5px;border-radius:50%}
+
+/* ════════════════════════
+   LEGEND / COURSE FILTER
+════════════════════════ */
+.legend{
+  display:flex;gap:8px;flex-wrap:wrap;
+  padding:9px 14px;margin-bottom:12px;
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;
+}
+.leg{
+  display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--text2);
+  padding:7px 13px;border-radius:20px;border:1px solid var(--border);
+  cursor:pointer;user-select:none;transition:.15s;
+  background:var(--surface2);
+}
+.leg:active{transform:scale(.96)}
+.leg.filter-active{
+  border-color:var(--fc,var(--accent));
+  background:color-mix(in srgb,var(--fc,var(--accent)) 14%,var(--surface2));
+  color:var(--text);font-weight:700;
+}
+.leg.filter-dimmed{opacity:.4}
+.leg-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.leg-clear{
+  margin-left:auto;font-size:11px;color:var(--text3);
+  padding:5px 10px;border-radius:16px;cursor:pointer;
+  border:1px dashed var(--border);user-select:none;transition:.15s;
+}
+.leg-clear:active{transform:scale(.96)}
+@media(max-width:600px){
+  .leg{font-size:13px;padding:6px 12px}
+  .leg-clear{font-size:12px}
+}
+
+/* ── 時間ジャンプバー ── */
+.hour-jump{
+  display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  padding:10px 12px;margin-bottom:14px;
+  background:var(--surface);border:1.5px solid var(--border);border-radius:12px;
+  scrollbar-width:none;
+}
+.hour-jump::-webkit-scrollbar{display:none}
+.hj-btn{
+  flex:0 0 auto;
+  font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
+  padding:8px 12px;border-radius:9px;cursor:pointer;user-select:none;
+  background:var(--surface2);border:1.5px solid var(--border);color:var(--text3);
+  transition:.15s;white-space:nowrap;position:relative;
+}
+.hj-btn:hover{border-color:var(--blue);color:var(--text2)}
+.hj-btn:active{transform:scale(.94)}
+.hj-btn.has{
+  color:var(--text);border-color:color-mix(in srgb,var(--pink) 45%,var(--border));
+  background:color-mix(in srgb,var(--pink) 10%,var(--surface2));
+}
+.hj-btn.has::after{
+  content:attr(data-pax);
+  position:absolute;top:-6px;right:-6px;
+  min-width:17px;height:17px;padding:0 4px;
+  background:linear-gradient(135deg,var(--pink),var(--blue));color:#fff;
+  border-radius:9px;font-size:10px;line-height:17px;text-align:center;
+  border:2px solid var(--bg);
+}
+.hj-btn.sd{border-color:var(--red)}
+@media(max-width:600px){
+  .hour-jump{padding:10px;gap:5px}
+  .hj-btn{font-size:14px;padding:10px 12px}
+}
+.t-row.flash .sblock{animation:flashSlot 1.4s ease}
+@keyframes flashSlot{
+  0%,100%{box-shadow:none}
+  25%{box-shadow:0 0 0 3px color-mix(in srgb,var(--pink) 55%,transparent)}
+}
+
+/* ════════════════════════
+   STATS
+════════════════════════ */
+.stats{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;margin-bottom:14px;
+}
+@media(max-width:600px){
+  .stats{grid-template-columns:repeat(2,1fr);gap:8px}
+}
+.scard{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:12px 14px;
+  border-top:2px solid var(--sc,var(--accent));
+  position:relative;overflow:hidden;
+}
+.sc-lbl{font-size:10.5px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.sc-val{font-family:'DM Mono',monospace;font-size:28px;font-weight:500;line-height:1;color:var(--sc,var(--text))}
+.sc-sub{font-size:11px;color:var(--text3);margin-top:2px}
+@media(max-width:600px){
+  .scard{padding:13px 12px}
+  .sc-val{font-size:27px}
+}
+
+/* ════════════════════════
+   SECTION LABEL
+════════════════════════ */
+.sec-lbl{
+  font-size:10px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;
+  margin-bottom:8px;display:flex;align-items:center;gap:8px;
+}
+.sec-lbl::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ════════════════════════
+   TIMETABLE
+════════════════════════ */
+.timetable{display:flex;flex-direction:column;gap:2px}
+.t-row{
+  display:grid;
+  grid-template-columns:56px 1fr;
+  min-height:32px;
+}
+@media(max-width:600px){
+  .t-row{grid-template-columns:50px 1fr}
+}
+.t-row.has-slot{min-height:auto}
+
+.t-time{
+  font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);
+  display:flex;align-items:flex-start;justify-content:flex-end;
+  padding:10px 10px 0 0;
+  border-right:1px solid var(--border);position:relative;
+}
+.t-time.filled{color:var(--text2)}
+.t-time.filled::after{
+  content:'';position:absolute;right:-4px;top:15px;
+  width:7px;height:7px;border-radius:50%;
+  background:var(--accent);border:2px solid var(--bg);
+  box-shadow:0 0 8px var(--accent);
+}
+.t-time.empty::after{
+  content:'';position:absolute;right:-3px;top:16px;
+  width:5px;height:5px;border-radius:50%;
+  background:var(--border);border:1px solid var(--bg);
+}
+.t-slot{padding:4px 0 4px 12px}
+@media(max-width:600px){.t-slot{padding:4px 0 4px 8px}}
+.t-empty{height:26px}
+
+/* ════════════════════════
+   SLOT BLOCK
+════════════════════════ */
+.sblock{
+  background:var(--surface);border:1px solid var(--border);
+  border-left:3px solid var(--sc,var(--accent));
+  border-radius:0 10px 10px 0;
+  padding:10px 14px;margin-bottom:2px;
+}
+@media(max-width:600px){.sblock{padding:10px 10px}}
+.sblock-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;flex-wrap:wrap;gap:4px;
+}
+.sblock-time{
+  font-family:'DM Mono',monospace;font-size:15px;font-weight:500;
+  color:var(--sc,var(--accent));
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+.sblock-sd-tag{
+  font-size:10px;font-weight:700;color:var(--red);
+  background:color-mix(in srgb,var(--red) 14%,transparent);
+  padding:2px 8px;border-radius:4px;
+}
+.sblock-right{display:flex;align-items:center;gap:6px}
+.sblock-count{font-size:11px;color:var(--text3)}
+.sblock-total{
+  font-family:'DM Mono',monospace;font-size:16px;font-weight:500;
+  background:var(--surface2);border:1px solid var(--border);
+  padding:3px 12px;border-radius:20px;
+  display:flex;align-items:baseline;gap:3px;
+}
+.sblock-total span{font-size:10px;color:var(--text3);font-family:'Noto Sans JP',sans-serif}
+.sb-breakdown{display:flex;gap:6px;flex-wrap:wrap;margin:-2px 0 10px}
+.sb-chip{
+  font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;
+  color:var(--cc);border:1px solid color-mix(in srgb,var(--cc) 45%,var(--border));
+  background:color-mix(in srgb,var(--cc) 12%,transparent);
+}
+.sb-chip b{font-family:'DM Mono',monospace;font-size:15px;margin-left:3px}
+.sb-chip small{font-size:10px;color:var(--text3);font-weight:400;margin-left:2px}
+@media(max-width:600px){.sb-chip{font-size:13px}.sb-chip b{font-size:17px}}
+
+/* ════════════════════════
+   BOOKING GRID
+════════════════════════ */
+.blist{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  gap:6px;
+}
+@media(max-width:600px){
+  .blist{grid-template-columns:1fr;gap:6px}
+}
+
+/* ════════════════════════
+   BOOKING CARD
+════════════════════════ */
+.bcard{
+  border-radius:10px;overflow:hidden;
+  border:1.5px solid color-mix(in srgb,var(--cc) 32%,var(--border));
+  background:var(--surface2);transition:.12s;
+  cursor:pointer;position:relative;
+}
+.bcard:active{transform:scale(.99)}
+.bcard:hover{transform:translateY(-1px);transition:transform .12s}
+.bcard.canceled{
+  opacity:1;
+  background:#181818;
+  border-color:#3a3a3a;
+  border-width:2px;
+}
+.bcard.canceled .bc-course,
+.bcard.canceled .bc-name,
+.bcard.canceled .bc-pax,
+.bcard.canceled .bc-id,
+.bcard.canceled .bc-recv{
+  text-decoration:none;
+  color:#6a6a6a !important;
+}
+.bcard.canceled .bc-icons{display:none}
+
+/* ══════ 来店済カード ══════ */
+.bcard.arrived{
+  background:var(--surface2);
+  border-color:var(--border);
+  box-shadow:none;
+  opacity:.55;
+}
+.bcard.sameday.arrived,
+.bcard.modified.arrived,
+.bcard.sameday.modified.arrived{
+  background:color-mix(in srgb,var(--green) 14%,var(--surface2));
+  border-color:var(--green);
+  box-shadow:0 0 12px color-mix(in srgb,var(--green) 18%,transparent);
+}
+.bcard.arrived .bc-course,
+.bcard.arrived .bc-name,
+.bcard.arrived .bc-pax{
+  filter:brightness(1.08);
+}
+
+/* ══════ 来店チェックボックス ══════ */
+.arrive-check{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 10px 5px 6px;border-radius:999px;
+  background:var(--surface);border:1.5px solid var(--border);
+  cursor:pointer;user-select:none;
+  transition:.15s;
+  font-size:12.5px;color:var(--text2);
+  font-weight:700;
+}
+.arrive-check:hover{border-color:var(--green)}
+.arrive-check:active{transform:scale(.96)}
+.arrive-check .ac-box{
+  width:18px;height:18px;border-radius:5px;
+  border:2px solid var(--text3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:900;color:transparent;
+  transition:.15s;
+  background:transparent;
+}
+.bcard.arrived .arrive-check{
+  background:var(--green);border-color:var(--green);color:#fff;
+}
+.bcard.arrived .arrive-check .ac-box{
+  background:#fff;border-color:#fff;color:var(--green);
+}
+.bcard.arrived .arrive-check .ac-box::before{content:"✓"}
+
+/* ══════ 電話チェック ══════ */
+.call-check{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 10px 5px 6px;border-radius:999px;
+  background:var(--surface);border:1.5px solid var(--border);
+  cursor:pointer;user-select:none;
+  transition:.15s;
+  font-size:12.5px;color:var(--text2);
+  font-weight:700;
+}
+.call-check:hover{border-color:var(--blue)}
+.call-check:active{transform:scale(.96)}
+.call-check .cc-box{
+  width:18px;height:18px;border-radius:5px;
+  border:2px solid var(--text3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:900;color:transparent;
+  transition:.15s;
+  background:transparent;
+}
+.bcard.called .call-check{
+  background:var(--blue);border-color:var(--blue);color:#fff;
+}
+.bcard.called .call-check .cc-box{
+  background:#fff;border-color:#fff;color:var(--blue);
+}
+.bcard.called .call-check .cc-box::before{content:"✓"}
+
+.action-checks{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+
+@media(max-width:600px){
+  .arrive-check,
+  .call-check{font-size:14px;padding:9px 15px 9px 9px}
+  .arrive-check .ac-box,
+  .call-check .cc-box{width:22px;height:22px}
+}
+
+/* ══════ 予約詳細アイコン ══════ */
+.bc-icons{
+  position:absolute; top:8px; right:8px;
+  display:flex; gap:5px; z-index:5;
+  pointer-events:none;
+}
+.bcard.sameday .bc-icons,
+.bcard.modified .bc-icons{ top:32px; }
+.bcard.sameday.modified .bc-icons{ top:56px; }
+.bc-mini-icon{
+  width:20px; height:20px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700;
+  background:rgba(255,255,255,.08);
+  color:var(--text3);
+  border:1px solid var(--border);
+}
+.bc-mini-icon.on{
+  color:#fff;
+  border-color:transparent;
+}
+.bc-mini-icon.paid.on{
+  background:var(--green);
+  box-shadow:0 0 6px rgba(62,207,142,.55);
+}
+.bc-mini-icon.review.on{
+  background:#f0b429;
+  box-shadow:0 0 6px rgba(240,180,41,.55);
+}
+.bc-mini-icon.staff.on{
+  background:var(--blue);
+  box-shadow:0 0 6px rgba(86,173,245,.55);
+}
+.bc-mini-icon.memo.on{
+  background:var(--accent);
+  box-shadow:0 0 6px rgba(124,106,247,.55);
+}
+
+/* ══════ モーダル ══════ */
+.modal-overlay{
+  position:fixed; inset:0; z-index:1000;
+  background:rgba(0,0,0,.65);
+  display:flex; align-items:center; justify-content:center;
+  padding:16px; opacity:0; pointer-events:none;
+  transition:opacity .18s;
+}
+.modal-overlay.open{opacity:1; pointer-events:auto}
+.modal{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:14px; width:100%; max-width:440px;
+  max-height:88vh; overflow-y:auto;
+  transform:translateY(12px); transition:transform .18s;
+}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-head{
+  padding:14px 18px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+}
+.modal-head-title{font-size:14px; font-weight:700; color:var(--text)}
+.modal-close{
+  background:transparent; border:none; color:var(--text3);
+  font-size:22px; cursor:pointer; line-height:1;
+  padding:4px 8px; border-radius:6px;
+}
+.modal-close:hover{background:var(--surface2); color:var(--text)}
+
+.modal-summary{padding:16px 18px; border-bottom:1px solid var(--border)}
+.ms-course{font-size:13px; font-weight:700; margin-bottom:6px}
+.ms-line{font-size:12px; color:var(--text2); line-height:1.5}
+.ms-line strong{color:var(--text); font-weight:500}
+.ms-link{color:var(--blue);text-decoration:none;word-break:break-all}
+.ms-link:active{opacity:.7}
+.ms-badges{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap}
+
+.modal-body{padding:18px}
+.mf-row{margin-bottom:16px}
+.mf-row:last-child{margin-bottom:0}
+.mf-label{
+  font-size:10px; color:var(--text3);
+  letter-spacing:.1em; text-transform:uppercase;
+  margin-bottom:6px; font-weight:700;
+}
+.mf-check{
+  display:flex; align-items:center; gap:10px;
+  padding:11px 14px; border-radius:10px;
+  background:var(--surface2); border:1px solid var(--border);
+  cursor:pointer; user-select:none;
+  transition:.12s;
+}
+.mf-check:active{transform:scale(.99)}
+.mf-check.on{
+  background:color-mix(in srgb,var(--green) 12%,var(--surface2));
+  border-color:var(--green);
+}
+.mf-check.on.review{
+  background:color-mix(in srgb,#f0b429 12%,var(--surface2));
+  border-color:#f0b429;
+}
+.mf-check-box{
+  width:20px; height:20px; border-radius:5px;
+  border:2px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; font-weight:700; color:#fff;
+  background:transparent; flex-shrink:0;
+}
+.mf-check.on .mf-check-box{background:var(--green); border-color:var(--green)}
+.mf-check.on.review .mf-check-box{background:#f0b429; border-color:#f0b429}
+.mf-check-label{font-size:14px; color:var(--text)}
+.mf-check.on .mf-check-label{font-weight:700}
+
+.mf-select{
+  width:100%; padding:11px 14px; border-radius:10px;
+  background:var(--surface2); border:1px solid var(--border);
+  color:var(--text); font-size:14px; font-family:inherit;
+  cursor:pointer;
+  -webkit-appearance:none; appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='%239090a8' d='M6 9L1.5 4h9z'/></svg>");
+  background-repeat:no-repeat;
+  background-position:right 12px center;
+  padding-right:34px;
+}
+.mf-textarea{
+  width:100%; padding:11px 14px; border-radius:10px;
+  background:var(--surface2); border:1px solid var(--border);
+  color:var(--text); font-size:13px; font-family:inherit;
+  resize:vertical; min-height:80px; line-height:1.5;
+  box-sizing:border-box;
+}
+.mf-status{
+  margin-top:10px; font-size:11px; color:var(--text3);
+  text-align:right; min-height:14px;
+}
+.mf-status.saving{color:var(--accent)}
+.mf-status.saved{color:var(--green)}
+.mf-status.error{color:var(--red)}
+
+@media(max-width:600px){
+  .modal{max-width:100%; border-radius:14px 14px 0 0; align-self:flex-end}
+  .modal-overlay{align-items:flex-end; padding:0}
+  .mf-check{padding:15px 16px}
+  .mf-check-label{font-size:16px}
+}
+
+.bcard.sameday{
+  border-color:var(--red);
+  box-shadow:0 0 12px color-mix(in srgb,var(--red) 18%,transparent);
+  background:color-mix(in srgb,var(--red) 6%,var(--surface2));
+}
+.bc-banner{
+  display:none;background:var(--red);color:#fff;
+  font-size:11px;font-weight:700;letter-spacing:.1em;
+  text-align:center;padding:4px;
+}
+.bcard.sameday .bc-banner{display:block}
+
+.bc-body{padding:10px 12px}
+@media(max-width:600px){
+  .bc-body{padding:12px 14px}
+}
+
+.bc-pax{
+  font-family:'DM Mono',monospace;font-size:30px;font-weight:500;
+  color:var(--cc);line-height:1;
+  display:flex;align-items:baseline;gap:3px;
+}
+.bc-pax span{font-size:12px;color:var(--text3);font-family:'Noto Sans JP',sans-serif;font-weight:400}
+.bc-course{font-size:12px;font-weight:700;color:var(--cc);margin-top:4px;margin-bottom:3px}
+.bc-name{
+  font-size:11px;color:var(--text3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.bc-id{
+  font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);
+  background:var(--bg);display:inline-block;padding:2px 6px;border-radius:4px;margin-top:3px;
+}
+.bc-foot{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:8px;padding-top:7px;border-top:1px solid var(--border);
+}
+.bc-recv{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);display:flex;align-items:center;gap:3px}
+.bc-recv-pre{font-family:'Noto Sans JP',sans-serif;font-size:9px;color:var(--text3)}
+
+@media(max-width:600px){
+  .bc-pax{font-size:42px}
+  .bc-pax span{font-size:14px}
+  .bc-course{font-size:15px}
+  .bc-name{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bc-id{font-size:11px}
+  .bc-recv{font-size:12px}
+  .bc-recv-pre{font-size:11px}
+  .bc-body-inner{display:flex;align-items:flex-start;gap:14px}
+  .bc-left{flex-shrink:0;text-align:center}
+  .bc-right{flex:1;min-width:0}
+}
+
+.badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px}
+.b-ok{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}
+.b-cancel{background:color-mix(in srgb,var(--text3) 15%,transparent);color:var(--text3)}
+.b-same{background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red)}
+.b-shop{background:color-mix(in srgb,var(--blue) 16%,transparent);color:var(--blue)}
+@media(max-width:600px){
+  .badge{font-size:12px;padding:4px 10px}
+}
+
+/* ★ 経路バッジ */
+.src-badge{
+  font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;
+  letter-spacing:.04em;
+}
+.src-klook{background:color-mix(in srgb,#ff6b35 15%,transparent);color:#ff6b35}
+.src-bokun{background:color-mix(in srgb,#00b4d8 15%,transparent);color:#00b4d8}
+.src-gyg{background:color-mix(in srgb,#00c170 15%,transparent);color:#00c170}
+.src-other{background:color-mix(in srgb,var(--text3) 12%,transparent);color:var(--text3)}
+.ctry-badge{background:color-mix(in srgb,var(--text2) 14%,transparent);color:var(--text2)}
+@media(max-width:600px){
+  .src-badge{font-size:11px;padding:3px 8px}
+}
+
+/* 予約変更カード */
+.bcard.modified{
+  border-color:#ff8a3d;
+  background:color-mix(in srgb,#ff8a3d 6%,var(--surface2));
+}
+.bc-modified-banner{
+  background:#ff8a3d;color:#fff;
+  font-size:11px;font-weight:700;letter-spacing:.1em;
+  text-align:center;padding:4px;
+}
+.b-modified{background:color-mix(in srgb,#ff8a3d 18%,transparent);color:#ff8a3d}
+.bc-prev{
+  font-family:'DM Mono',monospace;font-size:10px;
+  color:var(--text3);margin-top:4px;
+  display:flex;align-items:center;gap:4px;
+}
+.bc-prev-label{font-family:'Noto Sans JP',sans-serif;font-size:9px;color:#ff8a3d}
+@media(max-width:600px){
+  .bc-prev{font-size:12px}
+  .b-modified{font-size:12px;padding:4px 10px}
+}
+
+.no-data{text-align:center;padding:60px 0;color:var(--text3);font-size:14px}
+.no-data .ico{font-size:38px;margin-bottom:12px;opacity:.3}
+
+/* ════════════════════════
+   COURSE SUMMARY
+════════════════════════ */
+.course-summary{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:12px 16px;margin-bottom:12px;
+}
+.cs-title{
+  font-size:9px;color:var(--text3);letter-spacing:.12em;
+  text-transform:uppercase;margin-bottom:10px;
+}
+.cs-rows{display:flex;flex-direction:column;gap:6px}
+.cs-row{display:flex;align-items:center;gap:10px}
+.cs-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center}
+.cs-name{font-size:13px;font-weight:500;flex:1;min-width:0}
+.cs-bar-wrap{
+  flex:2;height:6px;background:var(--border);
+  border-radius:3px;overflow:hidden;min-width:60px;
+}
+.cs-bar{height:100%;border-radius:3px;transition:width .4s ease}
+.cs-pax{
+  font-family:'DM Mono',monospace;font-size:14px;font-weight:500;
+  min-width:42px;text-align:right;
+}
+.cs-pax small{font-size:10px;color:var(--text3);font-family:'Noto Sans JP',sans-serif;margin-left:1px}
+.cs-groups{font-size:10px;color:var(--text3);min-width:36px;text-align:right}
+@media(max-width:600px){
+  .course-summary{padding:12px 10px}
+  .cs-name{font-size:14px}
+  .cs-pax{font-size:16px}
+}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fadeIn .2s ease}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="hd-title"><div class="live-dot"></div>予約管理</div>
+  <div class="hd-nav">
+    <button class="hd-walkin" onclick="openWalkinForm()" title="直接来店を登録">＋ 新規予約</button>
+    <button class="hd-btn hd-reload" onclick="loadData()" title="更新">↻</button>
+    <button class="hd-btn" onclick="changeDay(-1)">‹</button>
+    <div class="hd-date" id="dateDisplay">
+      —<input type="date" id="datePicker" onchange="onDatePick(this.value)">
+    </div>
+    <button class="hd-btn" onclick="changeDay(1)">›</button>
+    <button class="hd-today" onclick="goToday()">今日</button>
+  </div>
+</div>
+
+<div class="page">
+  <!-- ★ ログイン画面 -->
+  <div id="loginArea" style="display:none;max-width:340px;margin:80px auto 0;padding:0 16px;text-align:center">
+    <div style="font-size:32px;margin-bottom:14px">🔒</div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:6px">予約管理ダッシュボード</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:20px">閲覧にはパスワードが必要です</div>
+    <input type="password" id="pwInput" placeholder="パスワードを入力"
+      style="width:100%;padding:12px 14px;font-size:15px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);margin-bottom:10px;font-family:inherit"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()"
+      style="width:100%;padding:12px;font-size:15px;font-weight:700;background:linear-gradient(135deg,var(--pink),var(--blue));color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:inherit">
+      ログイン
+    </button>
+    <div id="pwError" style="color:var(--red);font-size:12px;margin-top:10px;min-height:16px"></div>
+  </div>
+
+  <div id="loadingArea" class="loading" style="display:none">
+    <div class="spinner"></div>読み込み中...
+  </div>
+
+  <div id="app" style="display:none">
+    <div class="inner">
+      <div class="shop-tabs" id="shopTabs"></div>
+      <div class="month-nav" style="text-align:center; margin-bottom:20px; font-size:16px;">
+      <button onclick="prevMonth()" style="background:transparent;border:none;color:var(--text2);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:18px;display:inline-flex;align-items:center;justify-content:center;transition:.15s">◀</button>
+　　　　<span id="monthDisplay" style="margin:0 20px; font-weight:bold; min-width:120px; display:inline-block;"></span>
+　　　　<button onclick="nextMonth()" style="background:transparent;border:none;color:var(--text2);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:18px;display:inline-flex;align-items:center;justify-content:center;transition:.15s">▶</button>
+</div>
+      <div class="week-nav" id="weekNav"></div>
+      <div class="hour-jump" id="hourJump"></div>
+      <div class="legend" id="courseFilter"></div>
+      <div class="stats" id="stats"></div>
+      <div id="courseSum"></div>
+      <div class="sec-lbl" id="secLbl">タイムテーブル</div>
+    </div>
+    <div class="timetable" id="timetable"></div>
+  </div>
+</div>
+
+<!-- ══════ 新規予約（直接来店）フォームモーダル ══════ -->
+<div class="modal-overlay" id="walkinOverlay" onclick="closeWalkinForm(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-head-title" id="wfTitle">新規予約の登録（直接来店）</div>
+      <button class="modal-close" onclick="closeWalkinForm()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="mf-row">
+        <div class="mf-label">登録担当者<span class="wf-req">※必須</span></div>
+        <select class="mf-select" id="wfStaff">
+          <option value="">— 選択してください —</option>
+        </select>
+      </div>
+
+      <div class="mf-row">
+        <div class="mf-label">店舗<span class="wf-req">※必須</span></div>
+        <select class="mf-select" id="wfShop" onchange="onWfShopChange()">
+          <option value="">— 選択してください —</option>
+        </select>
+      </div>
+
+      <div class="mf-row wf-row2">
+        <div>
+          <div class="mf-label">体験日<span class="wf-req">※必須</span></div>
+          <input type="date" class="wf-input" id="wfDate">
+        </div>
+        <div>
+          <div class="mf-label">開始時間<span class="wf-req">※必須</span></div>
+          <select class="mf-select" id="wfTime">
+            <option value="">— 選択 —</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mf-row wf-row2">
+        <div>
+          <div class="mf-label">コース<span class="wf-req">※必須</span></div>
+          <select class="mf-select" id="wfCourse">
+            <option value="">— 選択 —</option>
+          </select>
+        </div>
+        <div>
+          <div class="mf-label">人数<span class="wf-req">※必須</span></div>
+          <input type="number" class="wf-input" id="wfPax" min="1" max="99" placeholder="例: 2">
+        </div>
+      </div>
+
+      <div class="mf-row">
+        <div class="mf-label">お客様氏名</div>
+        <input type="text" class="wf-input" id="wfName" placeholder="例: 山田 太郎">
+      </div>
+
+      <div class="mf-row">
+        <div class="mf-label">お客様電話番号</div>
+        <input type="tel" class="wf-input" id="wfPhone" placeholder="例: 090-1234-5678">
+      </div>
+
+      <div class="wf-error" id="wfError"></div>
+      <button class="wf-submit" id="wfSubmit" onclick="submitWalkin()">登録する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ 予約詳細モーダル ══════ -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeDetail(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-head-title">予約詳細</div>
+      <button class="modal-close" onclick="closeDetail()">×</button>
+    </div>
+    <div class="modal-summary" id="modalSummary"></div>
+    <div class="modal-body">
+      <div class="mf-row">
+        <div class="mf-label">支払い</div>
+        <div class="mf-check" id="mfPaid" onclick="toggleField('paid')">
+          <div class="mf-check-box" id="mfPaidBox">✓</div>
+          <div class="mf-check-label">支払い完了</div>
+        </div>
+      </div>
+
+      <div class="mf-row">
+        <div class="mf-label">担当者</div>
+        <select class="mf-select" id="mfStaff" onchange="onStaffChange()">
+          <option value="">— 未設定 —</option>
+        </select>
+      </div>
+
+      <div class="mf-row">
+        <div class="mf-label">レビュー</div>
+        <div class="mf-check review" id="mfReview" onclick="toggleField('reviewed')">
+          <div class="mf-check-box" id="mfReviewBox">✓</div>
+          <div class="mf-check-label">レビュー取得済み</div>
+        </div>
+      </div>
+
+      <div class="mf-row">
+        <div class="mf-label">メモ</div>
+        <textarea class="mf-textarea" id="mfMemo" placeholder="備考・特記事項..."
+          oninput="onMemoInput()"></textarea>
+      </div>
+
+      <div class="mf-status" id="mfStatus"></div>
+      <div id="mfEditArea" style="display:none;margin-top:8px">
+        <button class="mf-edit-btn" onclick="openWalkinEdit()">✎ 予約内容を修正</button>
+        <button class="mf-delete-btn" id="mfDeleteBtn" onclick="askDeleteWalkin()">🗑 この予約を削除</button>
+        <div class="mf-delete-confirm" id="mfDeleteConfirm" style="display:none">
+          <div class="mf-delete-confirm-text">本当にこの予約を削除しますか？<br>この操作は取り消せません。</div>
+          <div class="mf-delete-confirm-btns">
+            <button class="mf-delete-cancel" onclick="cancelDeleteWalkin()">キャンセル</button>
+            <button class="mf-delete-exec" id="mfDeleteExec" onclick="execDeleteWalkin()">削除する</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════
+//  コース・店舗の定義（ここを直せば増減できます）
+// ══════════════════════════════════
+const CC = {
+  '金継ぎ':'#d9a441',      // 黄（そのまま）
+  '包丁作り':'#6fbf9a',    // ← 箸の緑に変更
+  '箸作り':'#a48fd9',      // ← リングの紫に変更
+  'リング作り':'#7fa8c4',  // ← 包丁の水色に変更
+  '相撲ショー':'#e0603f'   // 赤オレンジ（そのまま）
+};
+const FLAGS = {
+  'アメリカ':'🇺🇸','カナダ':'🇨🇦','アメリカ/カナダ':'🌎','イギリス':'🇬🇧','オーストラリア':'🇦🇺','ニュージーランド':'🇳🇿',
+  '台湾':'🇹🇼','香港':'🇭🇰','中国':'🇨🇳','韓国':'🇰🇷','日本':'🇯🇵','シンガポール':'🇸🇬','マレーシア':'🇲🇾',
+  'タイ':'🇹🇭','フィリピン':'🇵🇭','インドネシア':'🇮🇩','ベトナム':'🇻🇳','インド':'🇮🇳','マカオ':'🇲🇴',
+  'ドイツ':'🇩🇪','フランス':'🇫🇷','イタリア':'🇮🇹','スペイン':'🇪🇸','オランダ':'🇳🇱','スイス':'🇨🇭',
+  'オーストリア':'🇦🇹','ベルギー':'🇧🇪','スウェーデン':'🇸🇪','ノルウェー':'🇳🇴','デンマーク':'🇩🇰',
+  'フィンランド':'🇫🇮','アイルランド':'🇮🇪','ポルトガル':'🇵🇹','ポーランド':'🇵🇱','イスラエル':'🇮🇱',
+  'UAE':'🇦🇪','メキシコ':'🇲🇽','ブラジル':'🇧🇷','トルコ':'🇹🇷','ロシア':'🇷🇺','南アフリカ':'🇿🇦'
+};
+function srcClassOf(s){ s=String(s||''); return s.indexOf('Klook')===0?'src-klook':s.indexOf('Bokun')===0?'src-bokun':s.indexOf('GetYourGuide')===0?'src-gyg':'src-other'; }
+function ctryBadge(b){
+  if(!b.country) return '';
+  return '<span class="src-badge ctry-badge">'+(FLAGS[b.country]||'🌏')+' '+b.country+'</span>';
+}
+var currentMonth = new Date();
+
+function prevMonth() {
+  const [y, m, d] = cur.split('/').map(Number);
+  const dt = new Date(y, m - 2, 1); // 前の月の1日
+  currentMonth = new Date(dt);
+  cur = dt.getFullYear() + '/' + p2(dt.getMonth() + 1) + '/' + p2(dt.getDate());
+  render();
+}
+
+function nextMonth() {
+  const [y, m, d] = cur.split('/').map(Number);
+  const dt = new Date(y, m, 1); // 次の月の1日
+  currentMonth = new Date(dt);
+  cur = dt.getFullYear() + '/' + p2(dt.getMonth() + 1) + '/' + p2(dt.getDate());
+  render();
+}
+
+function getMonthDisplay() {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const m = months[currentMonth.getMonth()];
+  const y = currentMonth.getFullYear();
+  return m + ' ' + y;
+}
+const ICONS = {
+  '金継ぎ':'🪡',
+  '包丁作り':'🔪',
+  '箸作り':'🥢',
+  'リング作り':'💍',
+  '相撲ショー':'🤼'
+};
+
+// ★ 店舗ごとの取り扱いコース
+const SHOPS = [
+  { key:'京都', label:'京都',       courses:['金継ぎ','包丁作り','箸作り','リング作り'] },
+  { key:'大阪', label:'大阪',       courses:['リング作り','箸作り','金継ぎ'] },
+  { key:'相撲', label:'相撲ショー', courses:['相撲ショー'] },
+];
+var SHOP = '京都';
+function shopConf(){
+  for(var i=0;i<SHOPS.length;i++){ if(SHOPS[i].key===SHOP) return SHOPS[i]; }
+  return SHOPS[0];
+}
+function shopOf(b){ return (b.shop || '京都'); }
+
+const isMobile = () => window.innerWidth <= 600;
+let DATA = [], cur = today();
+
+function today(){
+  const d=new Date();
+  return d.getFullYear()+'/'+p2(d.getMonth()+1)+'/'+p2(d.getDate());
+}
+function p2(n){return String(n).padStart(2,'0')}
+function dow(ds){const[y,m,d]=ds.split('/');return new Date(+y,+m-1,+d).getDay()}
+function addDays(ds,n){
+  const[y,m,d]=ds.split('/').map(Number);
+  const dt=new Date(y,m-1,d+n);
+  return dt.getFullYear()+'/'+p2(dt.getMonth()+1)+'/'+p2(dt.getDate());
+}
+function fmtDate(ds){
+  const[y,m,d]=ds.split('/');
+  const dn=['日','月','火','水','木','金','土'][dow(ds)];
+  return isMobile()?m+'/'+d+'（'+dn+'）':y+'/'+m+'/'+d+'（'+dn+'）';
+}
+
+// ★ 表示中の店舗＋コースフィルターを適用
+function booksFor(ds){
+  var list = DATA.filter(b => b.date===ds && shopOf(b)===SHOP);
+  if(COURSE_FILTER.size>0) list = list.filter(b=>COURSE_FILTER.has(b.course));
+  return list;
+}
+// コースフィルターなし（店舗だけ絞る）
+function booksForAll(ds){
+  return DATA.filter(b => b.date===ds && shopOf(b)===SHOP);
+}
+
+// ══════════════════════════════════
+//  店舗タブ
+// ══════════════════════════════════
+function renderShopTabs(){
+  const h = SHOPS.map(function(s){
+    const n = DATA.filter(function(b){
+      return b.date===cur && shopOf(b)===s.key && b.status!=='canceled';
+    }).length;
+    return '<div class="shop-tab'+(s.key===SHOP?' active':'')+'" onclick="switchShop(\''+s.key+'\')">'
+      + s.label + (n ? '<span class="st-n">'+n+'</span>' : '') + '</div>';
+  }).join('');
+  document.getElementById('shopTabs').innerHTML = h;
+}
+function switchShop(k){
+  if(SHOP===k) return;
+  SHOP = k;
+  COURSE_FILTER.clear();
+  render();
+}
+
+// ══════════════════════════════════
+//  コースフィルター
+// ══════════════════════════════════
+var COURSE_FILTER = new Set();
+
+function toggleCourseFilter(course){
+  if(COURSE_FILTER.has(course)) COURSE_FILTER.delete(course);
+  else COURSE_FILTER.add(course);
+  render();
+}
+function clearCourseFilter(){
+  COURSE_FILTER.clear();
+  render();
+}
+
+function renderCourseFilter(){
+  const COURSES = shopConf().courses;
+  const el = document.getElementById('courseFilter');
+  // コースが1つだけの店舗（相撲ショー）ではフィルターを出さない
+  if(COURSES.length <= 1){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display='flex';
+
+  const filtering = COURSE_FILTER.size>0;
+  var h = COURSES.map(c=>{
+    const color=CC[c]||'var(--text3)';
+    const isActive=COURSE_FILTER.has(c);
+    const isDimmed=filtering&&!isActive;
+    return `<div class="leg${isActive?' filter-active':''}${isDimmed?' filter-dimmed':''}"
+      style="--fc:${color}" onclick="toggleCourseFilter('${c}')">
+      <div class="leg-dot" style="background:${color}"></div>${ICONS[c]||'📋'} ${c}
+    </div>`;
+  }).join('');
+
+  if(filtering){
+    h += `<div class="leg-clear" onclick="clearCourseFilter()">✕ すべて表示</div>`;
+  }
+  el.innerHTML=h;
+}
+
+function safeName(s){
+  if(!s)return'—';
+    let n=s.split(/[\r\n]/)[0].replace(/^\((?:MR|MRS|MS|MISS|DR)?\)\s*/i,'')
+         .replace(/パスポート国.*$/,'')
+         .replace(/予約代表者.*$/,'')
+         .replace(/\s*[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}.*/,'')
+         .trim();
+  const max=isMobile()?24:18;
+  return n.length>max?n.slice(0,max)+'…':(n||'—');
+}
+
+// ══════════════════════════════════
+//  パスワード認証
+// ══════════════════════════════════
+var SESSION_PW = '';
+
+function doLogin(){
+  const pw = document.getElementById('pwInput').value;
+  const errEl = document.getElementById('pwError');
+  if(!pw){ errEl.textContent='パスワードを入力してください'; return; }
+  errEl.textContent='確認中...';
+
+  google.script.run
+    .withSuccessHandler(ok=>{
+      if(ok){
+        SESSION_PW = pw;
+        document.getElementById('loginArea').style.display='none';
+        loadStaffList();
+        loadData();
+      } else {
+        errEl.textContent='パスワードが違います';
+        document.getElementById('pwInput').value='';
+      }
+    })
+    .withFailureHandler(e=>{
+      errEl.textContent='エラー: '+e.message;
+    })
+    .checkDashboardPassword(pw);
+}
+
+function loadData(){
+  document.getElementById('loadingArea').style.display='block';
+  document.getElementById('app').style.display='none';
+  google.script.run
+    .withSuccessHandler(d=>{
+      DATA=d;
+      document.getElementById('loadingArea').style.display='none';
+      document.getElementById('app').style.display='block';
+      render();
+    })
+    .withFailureHandler(e=>{
+      if(e.message && e.message.indexOf('WRONG_PASSWORD')!==-1){
+        document.getElementById('loadingArea').style.display='none';
+        document.getElementById('app').style.display='none';
+        document.getElementById('loginArea').style.display='block';
+        document.getElementById('pwError').textContent='再度ログインしてください';
+        SESSION_PW='';
+      } else {
+        document.getElementById('loadingArea').innerHTML=
+          '<div style="color:var(--red);font-size:14px">読み込みエラー: '+e.message+'</div>';
+      }
+    })
+    .getBookingsForDashboard(SESSION_PW);
+}
+
+function changeDay(n){cur=addDays(cur,n);render()}
+function goToday(){cur=today();render()}
+function jumpTo(ds){cur=ds;render()}
+function onDatePick(v){if(!v)return;const[y,m,d]=v.split('-');cur=y+'/'+m+'/'+d;render()}
+
+function render(){
+  document.getElementById('monthDisplay').textContent = getMonthDisplay();
+  const el=document.getElementById('dateDisplay');
+  el.childNodes[0].textContent=fmtDate(cur);
+  const[y,m,d]=cur.split('/');
+  document.getElementById('datePicker').value=y+'-'+m+'-'+d;
+  renderShopTabs();
+  renderWeek();
+  renderCourseFilter();
+  renderHourJump();
+  renderStats();
+  renderCourseSummary();
+  renderTimetable();
+}
+
+// ── コース別人数サマリー ──
+function renderCourseSummary(){
+  const act=booksFor(cur).filter(b=>b.status!=='canceled');
+  if(!act.length){document.getElementById('courseSum').innerHTML='';return;}
+
+  const COURSE_ORDER = shopConf().courses;
+
+  const map={};
+  act.forEach(b=>{
+    const c=b.course||'その他';
+    if(!map[c])map[c]={pax:0,groups:0};
+    map[c].pax+=b.pax;
+    map[c].groups++;
+  });
+
+  const maxPax=Math.max(...Object.values(map).map(v=>v.pax),1);
+
+  // 定義順 → 定義外のコース → その他
+  const courses=COURSE_ORDER.filter(c=>map[c]);
+  Object.keys(map).forEach(function(c){
+    if(courses.indexOf(c)===-1 && c!=='その他') courses.push(c);
+  });
+  if(map['その他'])courses.push('その他');
+
+  const rows=courses.map(c=>{
+    const {pax,groups}=map[c];
+    const color=CC[c]||'var(--text3)';
+    const pct=Math.round(pax/maxPax*100);
+    const icon=ICONS[c]||'📋';
+    return `<div class="cs-row">
+      <div class="cs-icon">${icon}</div>
+      <div class="cs-name" style="color:${color}">${c}</div>
+      <div class="cs-bar-wrap">
+        <div class="cs-bar" style="width:${pct}%;background:${color}"></div>
+      </div>
+      <div class="cs-pax" style="color:${color}">${pax}<small>名</small></div>
+      <div class="cs-groups">${groups}組</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('courseSum').innerHTML=`
+    <div class="course-summary">
+      <div class="cs-title">コース別人数</div>
+      <div class="cs-rows">${rows}</div>
+    </div>`;
+}
+
+function renderWeek(){
+  const DAY=['日','月','火','水','木','金','土'];
+  let h='';
+  for(let i=-3;i<=3;i++){
+    const ds=addDays(cur,i);
+    const[,,dd]=ds.split('/');
+    const bks=booksFor(ds).filter(b=>b.status!=='canceled');
+    const isA=ds===cur;
+    const dots=[...new Set(bks.map(b=>b.course))].slice(0,4)
+      .map(c=>`<div class="wd-dot" style="background:${CC[c]||'var(--text3)'}"></div>`).join('');
+    h+=`<div class="wday${isA?' active':''}" onclick="jumpTo('${ds}')">
+      <div class="wd-n">${DAY[dow(ds)]}</div>
+      <div class="wd-d">${+dd}</div>
+      <div class="wd-dots">${dots}</div>
+    </div>`;
+  }
+  document.getElementById('weekNav').innerHTML=h;
+}
+
+function renderStats(){
+  const bks=booksFor(cur);
+  const act=bks.filter(b=>b.status!=='canceled');
+  const can=bks.filter(b=>b.status==='canceled');
+  const pax=act.reduce((s,b)=>s+b.pax,0);
+  const sd=act.filter(b=>b.sameDay).length;
+  const sl=[...new Set(act.map(b=>b.time))].length;
+  const rows=[
+    {l:'予約',    v:act.length, s:'組',      c:'var(--accent)'},
+    {l:'合計',    v:pax,        s:'名',      c:'var(--green)'},
+    {l:'時間帯',  v:sl,         s:'スロット',c:'var(--blue)'},
+    {l:'当日',    v:sd,         s:'組',      c:'var(--red)'},
+    {l:'キャンセル',v:can.length,s:'組',     c:'var(--text3)'},
+  ];
+  document.getElementById('stats').innerHTML=rows.map(r=>
+    `<div class="scard" style="--sc:${r.c}">
+      <div class="sc-lbl">${r.l}</div>
+      <div class="sc-val">${r.v}</div>
+      <div class="sc-sub">${r.s}</div>
+    </div>`
+  ).join('');
+}
+
+function renderHourJump(){
+  const bks = booksFor(cur).filter(b=>b.status!=='canceled');
+  const byTime = {};
+  bks.forEach(function(b){
+    if(!byTime[b.time]) byTime[b.time] = {pax:0, sd:false};
+    byTime[b.time].pax += b.pax;
+    if(b.sameDay) byTime[b.time].sd = true;
+  });
+
+  let h = '';
+  for(let m = 10*60; m <= 18*60+30; m += 30){
+    const key = p2(Math.floor(m/60)) + ':' + p2(m%60);
+    const info = byTime[key];
+    const cls = info ? ('hj-btn has' + (info.sd ? ' sd' : '')) : 'hj-btn';
+    const pax = info ? info.pax : '';
+    h += '<div class="' + cls + '" data-pax="' + pax + '" onclick="jumpToHour(\'' + key + '\')">' + key + '</div>';
+  }
+  document.getElementById('hourJump').innerHTML = h;
+}
+
+function jumpToHour(key){
+  const el = document.getElementById('slot-' + key.replace(':',''));
+  if(!el) return;
+  const top = el.getBoundingClientRect().top + window.pageYOffset - 70;
+  window.scrollTo({top: top, behavior: 'smooth'});
+  el.classList.remove('flash');
+  void el.offsetWidth;
+  el.classList.add('flash');
+  setTimeout(function(){ el.classList.remove('flash'); }, 1500);
+}
+
+function renderTimetable(){
+  const bks=booksFor(cur);
+  const[,cm,cd]=cur.split('/').map(Number);
+  const act=bks.filter(b=>b.status!=='canceled');
+  const slotCount=[...new Set(act.map(b=>b.time))].length;
+  document.getElementById('secLbl').innerHTML=
+    `${cm}月${cd}日 ${shopConf().label} タイムテーブル`
+    +(COURSE_FILTER.size>0?`<span style="color:#ff8a3d;font-size:10px;font-weight:700">【${[...COURSE_FILTER].join('・')}のみ】</span>`:'')
+    +`<span style="color:var(--text3);font-size:10px"> — ${slotCount}スロット / ${act.length}組</span>`;
+
+  if(!bks.length){
+    document.getElementById('timetable').innerHTML=
+      '<div class="no-data fade"><div class="ico">📭</div>この日の予約はありません</div>';
+    return;
+  }
+
+  const map={};
+  bks.forEach(b=>{if(!map[b.time])map[b.time]=[];map[b.time].push(b)});
+
+  let html='';
+  const START_MIN = 9 * 60;
+  const END_MIN   = 21 * 60;   // 18:30 → 21:00 に延長
+  const STEP_MIN  = 30;
+  for(let m = START_MIN; m <= END_MIN; m += STEP_MIN){
+    const hh = Math.floor(m / 60);
+    const mm = m % 60;
+    const key = p2(hh) + ':' + p2(mm);
+    const slot = map[key];
+    if(!slot){
+      html+=`<div class="t-row" id="slot-${key.replace(':','')}">
+        <div class="t-time empty">${key}</div>
+        <div class="t-slot"><div class="t-empty"></div></div>
+      </div>`;
+      continue;
+    }
+
+        const cpax={};
+    slot.filter(b=>b.status!=='canceled').forEach(b=>cpax[b.course]=(cpax[b.course]||0)+b.pax);
+    // ★ NEW from here
+    const cgrp={};
+    slot.filter(b=>b.status!=='canceled').forEach(b=>cgrp[b.course]=(cgrp[b.course]||0)+1);
+    const order=shopConf().courses.filter(c=>cpax[c]).concat(Object.keys(cpax).filter(c=>shopConf().courses.indexOf(c)===-1));
+    const breakdown=order.length
+      ? '<div class="sb-breakdown">'+order.map(c=>
+          `<span class="sb-chip" style="--cc:${CC[c]||'var(--text3)'}">${ICONS[c]||'📋'} ${c}<b>${cpax[c]}</b>名<small>·${cgrp[c]}組</small></span>`
+        ).join('')+'</div>'
+      : '';
+    // ★ NEW to here
+    const top=Object.entries(cpax).sort((a,b)=>b[1]-a[1])[0];
+   const sc=top?(CC[top[0]]||'var(--accent)'):'var(--accent)';
+    const actSlot=slot.filter(b=>b.status!=='canceled');
+    const total=actSlot.reduce((s,b)=>s+b.pax,0);
+    const hasSd=actSlot.some(b=>b.sameDay);
+
+    const cards=slot.map(b=>{
+      const cc=CC[b.course]||'var(--accent)';
+      const isC       = b.status==='canceled';
+      const isWalkin  = b.status==='walkin' && !isC;
+      const isSd      = b.sameDay && !isC && !isWalkin;
+      const isModified= b.status==='modified' && !isC;
+      const recv=b.receivedAt?b.receivedAt.substring(5):'';
+      const nm=safeName(b.name);
+      const srcClass=srcClassOf(b.source);
+      const srcLabel=b.source||'—';
+      const prevDate=b.prevDate||'';
+
+      const pcLayout=`
+        <div class="bc-pax" style="color:${isC?'var(--text3)':cc}">${b.pax}<span>名</span></div>
+        <div class="bc-course">${b.course}</div>
+        <div class="bc-name">${nm}</div>
+        <div style="display:flex;align-items:center;gap:5px;margin-top:3px;flex-wrap:wrap">
+          <div class="bc-id">${b.id}</div>
+          <span class="src-badge ${srcClass}">${srcLabel}</span>
+        </div>
+        ${prevDate?`<div class="bc-prev"><span class="bc-prev-label">変更前</span>${prevDate}</div>`:''}`;
+
+      const spLayout=`
+        <div class="bc-body-inner">
+          <div class="bc-left">
+            <div class="bc-pax" style="color:${isC?'var(--text3)':cc}">${b.pax}<span>名</span></div>
+          </div>
+          <div class="bc-right">
+            <div class="bc-course">${b.course}</div>
+            <div class="bc-name">${nm}</div>
+            <div style="display:flex;align-items:center;gap:5px;margin-top:3px;flex-wrap:wrap">
+              <div class="bc-id">${b.id}</div>
+              <span class="src-badge ${srcClass}">${srcLabel}</span>
+            </div>
+            ${prevDate?`<div class="bc-prev"><span class="bc-prev-label">変更前</span>${prevDate}</div>`:''}
+          </div>
+        </div>`;
+
+      return `<div class="bcard${isC?' canceled':''}${isSd?' sameday':''}${isModified?' modified':''}${isWalkin?' walkin':''}${b.arrived?' arrived':''}${b.called?' called':''}" style="--cc:${cc}" data-id="${b.id}" onclick="openDetail('${b.id}')">
+        <div class="bc-icons">
+          <div class="bc-mini-icon paid ${b.paid?'on':''}" title="支払い">¥</div>
+          <div class="bc-mini-icon staff ${b.staff?'on':''}" title="担当者">👤</div>
+          <div class="bc-mini-icon review ${b.reviewed?'on':''}" title="レビュー">★</div>
+          <div class="bc-mini-icon memo ${b.memo?'on':''}" title="メモ">✎</div>
+        </div>
+        ${isSd?'<div class="bc-banner">当日予約</div>':''}
+        ${isModified?'<div class="bc-modified-banner">🔄 予約変更</div>':''}
+        ${isWalkin?'<div class="bc-walkin-banner">🚶 直接来店</div>':''}
+        <div class="bc-body">
+          ${isMobile()?spLayout:pcLayout}
+          <div class="bc-foot">
+            <div class="bc-recv"><span class="bc-recv-pre">受付</span>${recv}</div>
+            ${isC
+              ? '<span class="badge b-cancel">キャンセル</span>'
+              : `<div class="action-checks">
+                   <div class="call-check" onclick="event.stopPropagation();toggleCalled('${b.id}')">
+                     <div class="cc-box"></div>電話
+                   </div>
+                   <div class="arrive-check" onclick="event.stopPropagation();toggleArrived('${b.id}')">
+                     <div class="ac-box"></div>来店
+                   </div>
+                 </div>`}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    html+=`<div class="t-row has-slot" id="slot-${key.replace(':','')}">
+      <div class="t-time filled" style="color:${sc}">${key}</div>
+      <div class="t-slot">
+        <div class="sblock" style="--sc:${sc}">
+          <div class="sblock-head">
+            <div class="sblock-time" style="color:${sc}">
+              ${key}
+              ${hasSd?`<span class="sblock-sd-tag">当日予約あり</span>`:''}
+            </div>
+            <div class="sblock-right">
+              <span class="sblock-count">${actSlot.length}組</span>
+              <div class="sblock-total">${total}<span>名</span></div>
+            </div>
+          </div>
+          ${breakdown}<div class="blist fade">${cards}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('timetable').innerHTML=html;
+}
+
+// 起動時はログイン画面を表示
+document.getElementById('loginArea').style.display='block';
+document.getElementById('pwInput').focus();
+
+// ══════════════════════════════════
+// 予約詳細モーダル
+// ══════════════════════════════════
+var STAFF_LIST = [];
+var CURRENT_BOOKING = null;
+var MEMO_TIMER = null;
+
+function loadStaffList(){
+  google.script.run
+    .withSuccessHandler(function(list){
+      STAFF_LIST = list || [];
+    })
+    .withFailureHandler(function(e){
+      console.warn('担当者リスト取得失敗', e);
+    })
+    .getStaffList(SESSION_PW);
+}
+
+function openDetail(bookingId){
+  const b = DATA.find(x => x.id === bookingId);
+  if (!b) return;
+  CURRENT_BOOKING = b;
+
+  const [y,m,d] = b.date.split('/');
+  const badges = [];
+  const shopKey = shopOf(b);
+  badges.push('<span class="badge b-shop">' + (shopKey==='相撲' ? '相撲ショー' : shopKey+'店') + '</span>');
+  if (b.status === 'walkin') badges.push('<span class="badge b-walkin">直接来店</span>');
+  if (b.source && b.source !== '直接来店') badges.push(`<span class="src-badge ${srcClassOf(b.source)}">${b.source}</span>`);
+
+  document.getElementById('modalSummary').innerHTML = `
+    <div class="ms-course" style="color:${CC[b.course]||'var(--text)'}">${b.course}</div>
+    <div class="ms-line"><strong>${+m}/${+d} ${b.time}</strong> · ${b.pax}名 · ${safeName(b.name)}</div>
+    ${b.phone?`<div class="ms-line" style="margin-top:4px">📞 <a class="ms-link" href="tel:${b.phone.replace(/[^+\d]/g,'')}">${b.phone}</a></div>`:''}
+    ${b.country?`<div class="ms-line" style="margin-top:4px">${FLAGS[b.country]||'🌏'} ${b.country}</div>`:''}
+    ${b.email?`<div class="ms-line" style="margin-top:4px">✉️ <a class="ms-link" href="mailto:${b.email}">${b.email}</a></div>`:''}
+    <div class="ms-line" style="margin-top:4px">予約番号: ${b.id}</div>
+    <div class="ms-badges">${badges.join('')}</div>
+  `;
+
+  setCheckState('mfPaid', !!b.paid);
+  setCheckState('mfReview', !!b.reviewed);
+  document.getElementById('mfMemo').value = b.memo || '';
+
+  const sel = document.getElementById('mfStaff');
+  sel.innerHTML = '<option value="">— 未設定 —</option>' +
+    STAFF_LIST.map(function(s){
+      return `<option value="${s}"${s===b.staff?' selected':''}>${s}</option>`;
+    }).join('');
+
+  document.getElementById('mfEditArea').style.display =
+    String(b.id).indexOf('WALK-') === 0 ? 'block' : 'none';
+  resetDeleteConfirm();
+
+  document.getElementById('mfStatus').textContent = '';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeDetail(ev){
+  if (ev && ev.target && !ev.target.classList.contains('modal-overlay') && !ev.target.classList.contains('modal-close')) return;
+  document.getElementById('modalOverlay').classList.remove('open');
+  CURRENT_BOOKING = null;
+}
+
+function setCheckState(id, on){
+  const el = document.getElementById(id);
+  if (on) el.classList.add('on'); else el.classList.remove('on');
+  document.getElementById(id + 'Box').textContent = on ? '✓' : '';
+}
+
+function toggleField(field){
+  if (!CURRENT_BOOKING) return;
+  const key = field === 'paid' ? 'paid' : 'reviewed';
+  const boxId = field === 'paid' ? 'mfPaid' : 'mfReview';
+  const newValue = !CURRENT_BOOKING[key];
+  CURRENT_BOOKING[key] = newValue;
+  setCheckState(boxId, newValue);
+  saveField(field, newValue);
+}
+
+// ★ 来店チェック
+function toggleArrived(bookingId){
+  const b = DATA.find(x => x.id === bookingId);
+  if (!b) return;
+  const newValue = !b.arrived;
+  b.arrived = newValue;
+
+  const card = document.querySelector('.bcard[data-id="' + bookingId + '"]');
+  if (card){
+    if (newValue) card.classList.add('arrived');
+    else card.classList.remove('arrived');
+  }
+
+  google.script.run
+    .withSuccessHandler(function(res){
+      if (!(res && res.ok)){
+        b.arrived = !newValue;
+        if (card){
+          if (!newValue) card.classList.add('arrived');
+          else card.classList.remove('arrived');
+        }
+        alert('保存失敗: ' + (res && res.msg || '不明'));
+      }
+    })
+    .withFailureHandler(function(e){
+      b.arrived = !newValue;
+      if (card){
+        if (!newValue) card.classList.add('arrived');
+        else card.classList.remove('arrived');
+      }
+      alert('保存失敗: ' + (e && e.message || 'エラー'));
+    })
+    .updateBookingDetail(SESSION_PW, bookingId, 'arrived', newValue);
+}
+
+// ★ 電話チェック
+function toggleCalled(bookingId){
+  const b = DATA.find(x => x.id === bookingId);
+  if (!b) return;
+  const newValue = !b.called;
+  b.called = newValue;
+
+  const card = document.querySelector('.bcard[data-id="' + bookingId + '"]');
+  if (card){
+    if (newValue) card.classList.add('called');
+    else card.classList.remove('called');
+  }
+
+  google.script.run
+    .withSuccessHandler(function(res){
+      if (!(res && res.ok)){
+        b.called = !newValue;
+        if (card){
+          if (!newValue) card.classList.add('called');
+          else card.classList.remove('called');
+        }
+        alert('保存失敗: ' + (res && res.msg || '不明'));
+      }
+    })
+    .withFailureHandler(function(e){
+      b.called = !newValue;
+      if (card){
+        if (!newValue) card.classList.add('called');
+        else card.classList.remove('called');
+      }
+      alert('保存失敗: ' + (e && e.message || 'エラー'));
+    })
+    .updateBookingDetail(SESSION_PW, bookingId, 'called', newValue);
+}
+
+function onStaffChange(){
+  if (!CURRENT_BOOKING) return;
+  const value = document.getElementById('mfStaff').value;
+  CURRENT_BOOKING.staff = value;
+  saveField('staff', value);
+}
+
+function onMemoInput(){
+  if (!CURRENT_BOOKING) return;
+  const value = document.getElementById('mfMemo').value;
+  CURRENT_BOOKING.memo = value;
+  if (MEMO_TIMER) clearTimeout(MEMO_TIMER);
+  const st = document.getElementById('mfStatus');
+  st.className = 'mf-status'; st.textContent = '入力中...';
+  MEMO_TIMER = setTimeout(function(){ saveField('memo', value); }, 600);
+}
+
+function saveField(field, value){
+  if (!CURRENT_BOOKING) return;
+  const st = document.getElementById('mfStatus');
+  st.className = 'mf-status saving';
+  st.textContent = '保存中...';
+
+  const targetId = CURRENT_BOOKING.id;
+  const idx = DATA.findIndex(x => x.id === targetId);
+  if (idx >= 0) DATA[idx][field] = value;
+
+  google.script.run
+    .withSuccessHandler(function(res){
+      if (res && res.ok){
+        st.className = 'mf-status saved';
+        st.textContent = '✓ 保存しました';
+        updateCardIcon(targetId, field, value);
+        setTimeout(function(){ st.textContent = ''; }, 1500);
+      } else {
+        st.className = 'mf-status error';
+        st.textContent = '保存失敗: ' + (res && res.msg || '不明');
+      }
+    })
+    .withFailureHandler(function(e){
+      st.className = 'mf-status error';
+      st.textContent = '保存失敗: ' + (e && e.message || 'エラー');
+    })
+    .updateBookingDetail(SESSION_PW, targetId, field, value);
+}
+
+function updateCardIcon(bookingId, field, value){
+  const card = document.querySelector('.bcard[data-id="' + bookingId + '"]');
+  if (!card) return;
+  const cls = field === 'paid' ? 'paid'
+            : field === 'reviewed' ? 'review'
+            : field === 'staff' ? 'staff'
+            : 'memo';
+  const icon = card.querySelector('.bc-mini-icon.' + cls);
+  if (!icon) return;
+  const on = (typeof value === 'string') ? value.trim().length > 0 : !!value;
+  if (on) icon.classList.add('on'); else icon.classList.remove('on');
+}
+
+// ══════════════════════════════════
+// 新規予約（直接来店）フォーム
+// ══════════════════════════════════
+var WALKIN_EDIT_ID = null;
+
+// 店舗プルダウン
+function buildShopOptions(selected){
+  return '<option value="">— 選択してください —</option>' +
+    SHOPS.map(function(s){
+      return '<option value="'+s.key+'"'+(s.key===selected?' selected':'')+'>'+s.label+'</option>';
+    }).join('');
+}
+// 選択中の店舗に応じたコースプルダウン
+function buildCourseOptions(shopKey, selected){
+  var conf = SHOPS[0];
+  for(var i=0;i<SHOPS.length;i++){ if(SHOPS[i].key===shopKey) conf=SHOPS[i]; }
+  return '<option value="">— 選択 —</option>' +
+    conf.courses.map(function(c){
+      return '<option value="'+c+'"'+(c===selected?' selected':'')+'>'+c+'</option>';
+    }).join('');
+}
+function onWfShopChange(){
+  document.getElementById('wfCourse').innerHTML =
+    buildCourseOptions(document.getElementById('wfShop').value, '');
+}
+
+// 開始時間の選択肢（9:00〜18:30 の30分刻み）
+function buildTimeOptions(selected){
+  var opts = '<option value="">— 選択 —</option>';
+  for (var m = 9*60; m <= 18*60+30; m += 30){
+    const hh = Math.floor(m/60), mm = m%60;
+    const t = String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
+    opts += `<option value="${t}"${t===selected?' selected':''}>${t}</option>`;
+  }
+  return opts;
+}
+
+function openWalkinForm(){
+  if (!SESSION_PW){ alert('先にログインしてください'); return; }
+  WALKIN_EDIT_ID = null;
+  document.getElementById('wfTitle').textContent = '新規予約の登録（直接来店）';
+  document.getElementById('wfSubmit').textContent = '登録する';
+
+  document.getElementById('wfStaff').innerHTML =
+    '<option value="">— 選択してください —</option>' +
+    STAFF_LIST.map(function(s){ return `<option value="${s}">${s}</option>`; }).join('');
+
+  const [y,m,d] = cur.split('/');
+  document.getElementById('wfDate').value = y + '-' + m + '-' + d;
+
+  document.getElementById('wfShop').innerHTML   = buildShopOptions(SHOP);
+  document.getElementById('wfTime').innerHTML   = buildTimeOptions('');
+  document.getElementById('wfCourse').innerHTML = buildCourseOptions(SHOP, '');
+  document.getElementById('wfPax').value = '';
+  document.getElementById('wfName').value = '';
+  document.getElementById('wfPhone').value = '';
+  document.getElementById('wfError').textContent = '';
+  clearWfErrors();
+
+  document.getElementById('walkinOverlay').classList.add('open');
+}
+
+// 詳細モーダルから修正モードで開く
+function openWalkinEdit(){
+  if (!CURRENT_BOOKING) return;
+  const b = CURRENT_BOOKING;
+  WALKIN_EDIT_ID = b.id;
+
+  document.getElementById('modalOverlay').classList.remove('open');
+
+  document.getElementById('wfTitle').textContent = '予約内容の修正';
+  document.getElementById('wfSubmit').textContent = '修正を保存する';
+
+  document.getElementById('wfStaff').innerHTML =
+    '<option value="">— 選択してください —</option>' +
+    STAFF_LIST.map(function(s){ return `<option value="${s}"${s===b.staff?' selected':''}>${s}</option>`; }).join('');
+
+  const bShop = shopOf(b);
+  const [y,m,d] = b.date.split('/');
+  document.getElementById('wfDate').value = y + '-' + m + '-' + d;
+  document.getElementById('wfShop').innerHTML   = buildShopOptions(bShop);
+  document.getElementById('wfTime').innerHTML   = buildTimeOptions(b.time);
+  document.getElementById('wfCourse').innerHTML = buildCourseOptions(bShop, b.course);
+  document.getElementById('wfPax').value = b.pax || '';
+  document.getElementById('wfName').value = b.name || '';
+  document.getElementById('wfPhone').value = b.phone || '';
+  document.getElementById('wfError').textContent = '';
+  clearWfErrors();
+
+  document.getElementById('walkinOverlay').classList.add('open');
+}
+
+function closeWalkinForm(ev){
+  if (ev && ev.target && !ev.target.classList.contains('modal-overlay') && !ev.target.classList.contains('modal-close')) return;
+  document.getElementById('walkinOverlay').classList.remove('open');
+  WALKIN_EDIT_ID = null;
+}
+
+function clearWfErrors(){
+  ['wfStaff','wfShop','wfDate','wfTime','wfCourse','wfPax'].forEach(function(id){
+    document.getElementById(id).classList.remove('error');
+  });
+}
+
+function submitWalkin(){
+  clearWfErrors();
+  const errEl = document.getElementById('wfError');
+  errEl.textContent = '';
+
+  const staff  = document.getElementById('wfStaff').value;
+  const shop   = document.getElementById('wfShop').value;
+  const dateEl = document.getElementById('wfDate').value;   // yyyy-mm-dd
+  const time   = document.getElementById('wfTime').value;
+  const course = document.getElementById('wfCourse').value;
+  const pax    = document.getElementById('wfPax').value;
+  const name   = document.getElementById('wfName').value.trim();
+  const phone  = document.getElementById('wfPhone').value.trim();
+
+  var missing = [];
+  if (!staff)  { document.getElementById('wfStaff').classList.add('error');  missing.push('登録担当者'); }
+  if (!shop)   { document.getElementById('wfShop').classList.add('error');   missing.push('店舗'); }
+  if (!dateEl) { document.getElementById('wfDate').classList.add('error');   missing.push('体験日'); }
+  if (!time)   { document.getElementById('wfTime').classList.add('error');   missing.push('開始時間'); }
+  if (!course) { document.getElementById('wfCourse').classList.add('error'); missing.push('コース'); }
+  if (!pax || parseInt(pax) < 1) { document.getElementById('wfPax').classList.add('error'); missing.push('人数'); }
+
+  if (missing.length > 0){
+    errEl.textContent = '必須項目を入力してください: ' + missing.join('・');
+    return;
+  }
+
+  const dateStr = dateEl.replace(/-/g, '/');
+
+  const payload = {
+    staff: staff, shop: shop, date: dateStr, time: time,
+    course: course, pax: parseInt(pax),
+    name: name, phone: phone,
+  };
+
+  const btn = document.getElementById('wfSubmit');
+  btn.disabled = true;
+  btn.textContent = WALKIN_EDIT_ID ? '保存中...' : '登録中...';
+
+  const handler = function(res){
+    btn.disabled = false;
+    btn.textContent = WALKIN_EDIT_ID ? '修正を保存する' : '登録する';
+    if (res && res.ok){
+      document.getElementById('walkinOverlay').classList.remove('open');
+      WALKIN_EDIT_ID = null;
+      // 登録した店舗・日付に移動して再読み込み
+      SHOP = shop;
+      COURSE_FILTER.clear();
+      cur = dateStr;
+      loadData();
+    } else {
+      errEl.textContent = (res && res.msg) || '保存に失敗しました';
+    }
+  };
+  const failHandler = function(e){
+    btn.disabled = false;
+    btn.textContent = WALKIN_EDIT_ID ? '修正を保存する' : '登録する';
+    errEl.textContent = '通信エラー: ' + (e && e.message || '不明');
+  };
+
+  if (WALKIN_EDIT_ID){
+    google.script.run
+      .withSuccessHandler(handler)
+      .withFailureHandler(failHandler)
+      .updateWalkinBooking(SESSION_PW, WALKIN_EDIT_ID, payload);
+  } else {
+    google.script.run
+      .withSuccessHandler(handler)
+      .withFailureHandler(failHandler)
+      .createWalkinBooking(SESSION_PW, payload);
+  }
+}
+
+// ══════════════════════════════════
+// 直接来店予約の削除（2段階確認）
+// ══════════════════════════════════
+function askDeleteWalkin(){
+  document.getElementById('mfDeleteBtn').style.display = 'none';
+  document.getElementById('mfDeleteConfirm').style.display = 'block';
+}
+
+function cancelDeleteWalkin(){
+  document.getElementById('mfDeleteConfirm').style.display = 'none';
+  document.getElementById('mfDeleteBtn').style.display = 'block';
+}
+
+function resetDeleteConfirm(){
+  document.getElementById('mfDeleteConfirm').style.display = 'none';
+  document.getElementById('mfDeleteBtn').style.display = 'block';
+  const ex = document.getElementById('mfDeleteExec');
+  ex.disabled = false;
+  ex.textContent = '削除する';
+}
+
+function execDeleteWalkin(){
+  if (!CURRENT_BOOKING) return;
+  const bookingId = CURRENT_BOOKING.id;
+  const ex = document.getElementById('mfDeleteExec');
+  ex.disabled = true;
+  ex.textContent = '削除中...';
+
+  google.script.run
+    .withSuccessHandler(function(res){
+      if (res && res.ok){
+        document.getElementById('modalOverlay').classList.remove('open');
+        CURRENT_BOOKING = null;
+        resetDeleteConfirm();
+        loadData();
+      } else {
+        ex.disabled = false;
+        ex.textContent = '削除する';
+        alert('削除失敗: ' + (res && res.msg || '不明'));
+      }
+    })
+    .withFailureHandler(function(e){
+      ex.disabled = false;
+      ex.textContent = '削除する';
+      alert('削除失敗: ' + (e && e.message || 'エラー'));
+    })
+    .deleteWalkinBooking(SESSION_PW, bookingId);
+}
+
+// ESCキーでモーダルを閉じる
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){
+    document.getElementById('modalOverlay').classList.remove('open');
+    document.getElementById('walkinOverlay').classList.remove('open');
+    CURRENT_BOOKING = null;
+    WALKIN_EDIT_ID = null;
+  }
+});
+
+</script>
+</body>
+</html>
